@@ -75,3 +75,4 @@ else:
 
 st.divider()
 st.caption("All power values are displayed in kilowatts (kW).")
+
