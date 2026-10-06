@@ -1,86 +1,77 @@
+"""Streamlit web application for IC engine performance calculations."""
 
-"""Menu-driven calculator for common IC engine performance quantities."""
+import streamlit as st
 
-import math
-
-
-def calculate_brake_power(speed_rpm: float, torque_nm: float) -> float:
-    """Return brake power in kW from engine speed (rpm) and torque (N·m)."""
-    return (2 * math.pi * speed_rpm * torque_nm) / 60_000
-
-
-def calculate_indicated_power(brake_power_kw: float, friction_power_kw: float) -> float:
-    """Return indicated power in kW (IP = BP + FP)."""
-    return brake_power_kw + friction_power_kw
+from ic_engine_performance_calculator import (
+    calculate_brake_power,
+    calculate_friction_power,
+    calculate_indicated_power,
+    calculate_mechanical_efficiency,
+)
 
 
-def calculate_friction_power(indicated_power_kw: float, brake_power_kw: float) -> float:
-    """Return friction power in kW (FP = IP - BP)."""
-    return indicated_power_kw - brake_power_kw
+st.set_page_config(page_title="IC Engine Performance Calculator", page_icon="⚙️")
 
+st.title("⚙️ IC Engine Performance Calculator")
+st.write("Calculate the main performance values of an internal-combustion engine.")
 
-def calculate_mechanical_efficiency(brake_power_kw: float, indicated_power_kw: float) -> float:
-    """Return mechanical efficiency as a percentage."""
-    if indicated_power_kw <= 0:
-        raise ValueError("Indicated power must be greater than zero.")
-    return (brake_power_kw / indicated_power_kw) * 100
+calculation = st.selectbox(
+    "Select a calculation",
+    (
+        "Brake Power",
+        "Indicated Power",
+        "Friction Power",
+        "Mechanical Efficiency",
+    ),
+)
 
+if calculation == "Brake Power":
+    st.subheader("Brake Power")
+    st.caption("BP = 2πNT / 60,000")
+    speed = st.number_input("Engine speed (rpm)", min_value=0.0, value=1500.0, step=100.0)
+    torque = st.number_input("Brake torque (N·m)", min_value=0.0, value=100.0, step=1.0)
 
-def read_number(prompt: str, minimum: float | None = None) -> float:
-    """Read a numeric value, repeating until it is valid."""
-    while True:
-        try:
-            value = float(input(prompt))
-            if minimum is not None and value < minimum:
-                print(f"Please enter a value of at least {minimum}.")
-                continue
-            return value
-        except ValueError:
-            print("Invalid input. Please enter a number.")
+    if st.button("Calculate brake power"):
+        result = calculate_brake_power(speed, torque)
+        st.metric("Brake power", f"{result:.3f} kW")
 
+elif calculation == "Indicated Power":
+    st.subheader("Indicated Power")
+    st.caption("IP = BP + FP")
+    brake_power = st.number_input("Brake power (kW)", min_value=0.0, value=20.0, step=0.1)
+    friction_power = st.number_input("Friction power (kW)", min_value=0.0, value=5.0, step=0.1)
 
-def show_menu() -> None:
-    print("\nIC ENGINE PERFORMANCE CALCULATOR")
-    print("1. Calculate brake power")
-    print("2. Calculate indicated power")
-    print("3. Calculate friction power")
-    print("4. Calculate mechanical efficiency")
-    print("5. Exit")
+    if st.button("Calculate indicated power"):
+        result = calculate_indicated_power(brake_power, friction_power)
+        st.metric("Indicated power", f"{result:.3f} kW")
 
+elif calculation == "Friction Power":
+    st.subheader("Friction Power")
+    st.caption("FP = IP − BP")
+    indicated_power = st.number_input("Indicated power (kW)", min_value=0.0, value=25.0, step=0.1)
+    brake_power = st.number_input("Brake power (kW)", min_value=0.0, value=20.0, step=0.1)
 
-def main() -> None:
-    while True:
-        show_menu()
-        choice = input("Choose an option (1-5): ").strip()
-
-        if choice == "1":
-            speed = read_number("Engine speed (rpm): ", 0)
-            torque = read_number("Brake torque (N·m): ", 0)
-            print(f"Brake power = {calculate_brake_power(speed, torque):.3f} kW")
-        elif choice == "2":
-            bp = read_number("Brake power (kW): ", 0)
-            fp = read_number("Friction power (kW): ", 0)
-            print(f"Indicated power = {calculate_indicated_power(bp, fp):.3f} kW")
-        elif choice == "3":
-            ip = read_number("Indicated power (kW): ", 0)
-            bp = read_number("Brake power (kW): ", 0)
-            if bp > ip:
-                print("Brake power cannot exceed indicated power.")
-            else:
-                print(f"Friction power = {calculate_friction_power(ip, bp):.3f} kW")
-        elif choice == "4":
-            bp = read_number("Brake power (kW): ", 0)
-            ip = read_number("Indicated power (kW): ", 0)
-            if bp > ip:
-                print("Brake power cannot exceed indicated power.")
-            else:
-                print(f"Mechanical efficiency = {calculate_mechanical_efficiency(bp, ip):.2f}%")
-        elif choice == "5":
-            print("Thank you for using the calculator.")
-            break
+    if st.button("Calculate friction power"):
+        if brake_power > indicated_power:
+            st.error("Brake power cannot exceed indicated power.")
         else:
-            print("Invalid choice. Please select a number from 1 to 5.")
+            result = calculate_friction_power(indicated_power, brake_power)
+            st.metric("Friction power", f"{result:.3f} kW")
 
+else:
+    st.subheader("Mechanical Efficiency")
+    st.caption("Mechanical efficiency = (BP / IP) × 100")
+    indicated_power = st.number_input("Indicated power (kW)", min_value=0.0, value=25.0, step=0.1)
+    brake_power = st.number_input("Brake power (kW)", min_value=0.0, value=20.0, step=0.1)
 
-if __name__ == "__main__":
-    main()
+    if st.button("Calculate mechanical efficiency"):
+        if indicated_power == 0:
+            st.error("Indicated power must be greater than zero.")
+        elif brake_power > indicated_power:
+            st.error("Brake power cannot exceed indicated power.")
+        else:
+            result = calculate_mechanical_efficiency(brake_power, indicated_power)
+            st.metric("Mechanical efficiency", f"{result:.2f}%")
+
+st.divider()
+st.caption("All power values are displayed in kilowatts (kW).")
