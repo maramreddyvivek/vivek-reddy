@@ -1,5 +1,4 @@
-# vivek-reddy
-ic engine calculator
+
 """Menu-driven calculator for common IC engine performance quantities."""
 
 import math
